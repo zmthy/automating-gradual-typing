@@ -1,20 +1,22 @@
 module Type.Gradual where
 
 open import Data.Bool
+  as Bool
   using ()
   renaming ( Bool to 𝔹 )
 
 open import Data.Integer
+  as Int
   using ( ℤ )
 
 open import Data.Nat
   using ( zero ; suc )
 
 open import Data.Fin
-  using ( Fin )
+  using ( Fin ; zero ; suc )
 
 open import Data.Vec
-  using ( Vec ; _∷_ ; lookup )
+  using ( Vec ; [] ; _∷_ ; lookup )
 
 open import Function
   using ( id ; _∘_ )
@@ -57,6 +59,31 @@ module STFL where
                     → T₁ ≡ Bool → T₄ ≡ T₂ ⊓ T₃
                     → Term Γ T₄
     _∶_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : Type) → T₁ ≡ T₂ → Term Γ T₂
+
+  ⟦_⟧ : Type → Set
+  ⟦ Int ⟧ = ℤ
+  ⟦ Bool ⟧ = 𝔹
+  ⟦ T₁ ➔ T₂ ⟧ = ⟦ T₁ ⟧ → ⟦ T₂ ⟧
+
+  data Env : ∀ {n} → Vec Type n → Set where
+    [] : Env []
+    _∷_ : ∀ {n T} {Γ : Vec Type n} → ⟦ T ⟧ → Env Γ → Env (T ∷ Γ)
+
+  fetch : ∀ {n} {Γ : Vec Type n} → (i : Fin n) → Env Γ → ⟦ lookup i Γ ⟧
+  fetch () []
+  fetch zero (x ∷ e) = x
+  fetch (suc i) (x ∷ e) = fetch i e
+
+  eval : ∀ {n A} {Γ : Vec Type n} → Env Γ → Term Γ A → ⟦ A ⟧
+  eval e (int x) = x
+  eval e (bool x) = x
+  eval e (var i refl) = fetch i e
+  eval e (abs T t) = λ x → eval (x ∷ e) t
+  eval e ((t₁ ∙ t₂) refl refl) = (eval e t₁) (eval e t₂)
+  eval e (t₁ + t₂) = eval e t₁ Int.+ eval e t₂
+  eval e ((if t₁ then t₂ else t₃) refl (refl refl refl)) =
+    Bool.if (eval e t₁) then (eval e t₂) else (eval e t₃)
+  eval e ((t ∶ T) refl) = eval e t
 
 record Functor {a b} (F : Set a → Set b) : Set (lsuc a ⊔ b) where
   field
@@ -128,9 +155,9 @@ module GTFL {F : Set → Set} (U : UnitFunctor F) where
             → T₁ ≈ unit Int → T₂ ≈ unit Int
             → Term Γ (unit Int)
       if_then_else_ : ∀ {T₁ T₂ T₃ T₄}
-                    → (t₁ : Term Γ T₁) (t₂ : Term Γ T₁) (t₃ : Term Γ T₁)
-                    → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
-                    → Term Γ T₄
+                      → (t₁ : Term Γ T₁) (t₂ : Term Γ T₁) (t₃ : Term Γ T₁)
+                      → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
+                      → Term Γ T₄
       _∶_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : F Type) → T₁ ≈ T₂ → Term Γ T₂
 
 module Identity where
@@ -154,6 +181,10 @@ open Identity
 module IType where
 
   open GTFL IFunctor public
+
+  open Language record
+    { _≈_ = _≡_
+    } public
 
 module GType where
 
