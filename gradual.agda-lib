@@ -1,0 +1,4 @@
+name: gradual
+include: .
+depend:
+  standard-library
