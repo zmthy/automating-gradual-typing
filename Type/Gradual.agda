@@ -1,5 +1,7 @@
 module Type.Gradual where
 
+open import Category.UnitFunctor
+
 open import Data.Bool
   as Bool
   using ()
@@ -23,12 +25,21 @@ open import Function
 
 open import Level
   using ( _⊔_ )
-  renaming ( suc to lsuc )
+  renaming ( zero to lzero ; suc to lsuc )
+
+open import Relation.Binary
+  using ( REL ; Rel )
 
 open import Relation.Binary.PropositionalEquality
   using ( _≡_ ; refl )
 
-module STFL where
+open import Relation.Unary
+  using ( Pred ; _∈_ )
+
+open import Relation.Unary.PredicateTransformer
+  using ( PT )
+
+module Concrete where
 
   data Type : Set where
     Int : Type
@@ -85,120 +96,16 @@ module STFL where
     Bool.if (eval e t₁) then (eval e t₂) else (eval e t₃)
   eval e ((t ∶ T) refl) = eval e t
 
-record Functor {a b} (F : Set a → Set b) : Set (lsuc a ⊔ b) where
-  field
-    lift : ∀ {A B} (f : A → B) (x : F A) → F B
-    identity : ∀ {A} x → lift {A} id x ≡ id x
-    composition : ∀ {A B C} {f : A → B} {g : B → C} x
-                  → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
+module Gradual where
 
-record UnitFunctor {a b} (F : Set a → Set b) : Set (lsuc a ⊔ b) where
-  field
-    functor : Functor F
+  data Type A : Set where
+    ¿ : Type A
+    type : A → Type A
 
-  open Functor functor public
-
-  field
-    unit : ∀ {A} (x : A) → F A
-    lift-unit : ∀ {A B} {f : A → B} {x} → lift f (unit x) ≡ unit (f x)
-
-module Power where
-
-  ℙ : ∀ {a} (A : Set a) → Set (lsuc a)
-  ℙ {a} A = A → Set a
-
-  data Unary {ℓ} {A B : Set ℓ} (f : A → B) : ℙ A → ℙ B where
-    raise : ∀ {F} x → F x → Unary f F (f x)
-
-  data Binary {ℓ} {A B C : Set ℓ} (f : A → B → C) : ℙ A → ℙ B → ℙ C where
-    raise : ∀ {F G} x y → F x → G y → Binary f F G (f x y)
-
-  data Trinary {ℓ} {A B C D : Set ℓ} (f : A → B → C → D) : ℙ A → ℙ B → ℙ C → ℙ D where
-    raise : ∀ {F G H} x y z → F x → G y → H z → Trinary f F G H (f x y z)
-
-open Power
-
-module GTFL {F : Set → Set} (U : UnitFunctor F) where
-
-  open UnitFunctor U
-
-  {-# NO_POSITIVITY_CHECK #-}
-  data Type : Set where
-    Int : Type
-    Bool : Type
-    _➔_ : (T₁ T₂ : F Type) → Type
-
-  record Language : Set₁ where
-    field
-      _≈_ : ∀ {A : Set} → A → A → Set
-
-    data _≈_⊓_ : F Type → F Type → F Type → Set where
-
-    data _≈-dom_ (T : F Type) : F Type → Set where
-      rel : ∀ {T′} → T ≈-dom (unit (T ➔ T′))
-
-    data _≈-cod_ (T : F Type) : F Type → Set where
-      rel : ∀ {T′} →  T ≈-cod (unit (T′ ➔ T))
-
-    data Term {n} (Γ : Vec (F Type) n) : F Type → Set where
-      int : (x : ℤ) → Term Γ (unit Int)
-      bool : (x : 𝔹) → Term Γ (unit Bool)
-      var : ∀ {T} (i : Fin n) → T ≡ lookup i Γ → Term Γ T
-      abs : (T₁ : F Type) {T₂ : F Type} (t : Term (T₁ ∷ Γ) T₂)
-            → Term Γ (unit (T₁ ➔ T₂))
-      _∙_ : ∀ {T₁ T₂ T₃}
-            → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
-            → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
-            → Term Γ T₃
-      _+_ : ∀ {T₁ T₂}
-            → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
-            → T₁ ≈ unit Int → T₂ ≈ unit Int
-            → Term Γ (unit Int)
-      if_then_else_ : ∀ {T₁ T₂ T₃ T₄}
-                      → (t₁ : Term Γ T₁) (t₂ : Term Γ T₁) (t₃ : Term Γ T₁)
-                      → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
-                      → Term Γ T₄
-      _∶_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : F Type) → T₁ ≈ T₂ → Term Γ T₂
-
-module Identity where
-
-  data Identity {a} (A : Set a) : Set a where
-    identity : A → Identity A
-
-  IFunctor : ∀ {a} → UnitFunctor {a} Identity
-  IFunctor = record
-    { functor = record
-      { lift = λ { f (identity x) → identity (f x) }
-      ; identity = λ { (identity x) → refl }
-      ; composition = λ { (identity x) → refl }
-      }
-    ; unit = identity
-    ; lift-unit = refl
-    }
-
-open Identity
-
-module IType where
-
-  open GTFL IFunctor public
-
-  open Language record
-    { _≈_ = _≡_
-    } public
-
-module GType where
-
-  data GType A : Set where
-    ¿ : GType A
-    type : A → GType A
-
-  data All {A} (P : A → Set) : ℙ (GType A) where
-    ¿ : All P ¿
-    type : ∀ {T} → P T → All P (type T)
-
-  GFunctor : UnitFunctor GType
-  GFunctor = record
-    { functor = record
+  functor : UnitFunctor
+  functor = record
+    { Carrier = Type
+    ; functor = record
       { lift = λ { f ¿ → ¿ ; f (type x) → type (f x) }
       ; identity = λ { ¿ → refl ; (type x) → refl }
       ; composition = λ { ¿ → refl ; (type x) → refl }
@@ -207,12 +114,122 @@ module GType where
     ; lift-unit = refl
     }
 
-  open GTFL GFunctor public
 
-open GType
-  using ( type )
+open Gradual
+  using ( ¿ ; type )
 
-embed : IType.Type → GType.Type
-embed IType.Int = GType.Int
-embed IType.Bool = GType.Bool
-embed (identity T₁ IType.➔ identity T₂) = type (embed T₁) GType.➔ type (embed T₂)
+module Power where
+
+  data Unary {a ℓ f} {A : Set a}
+            (P : Pred A ℓ)
+            (F : Pred A f) : Set (a ⊔ ℓ ⊔ f) where
+    raise : ∀ x → x ∈ F → P x → Unary P F
+
+  data Binary {a b ℓ f g} {A : Set a} {B : Set b}
+              (P : REL A B ℓ)
+              (F : Pred A f) (G : Pred B g) : Set (a ⊔ b ⊔ ℓ ⊔ f ⊔ g) where
+    raise : ∀ x y → x ∈ F → y ∈ G → P x y → Binary P F G
+
+module ATFL where
+
+  {-# NO_POSITIVITY_CHECK #-}
+  data RecType (F : Set → Set) : Set where
+    Int : RecType F
+    Bool : RecType F
+    _➔_ : (T₁ T₂ : F (RecType F)) → RecType F
+
+  module Under (U : UnitFunctor {lzero} {lzero}) where
+
+    open UnitFunctor U
+
+    Type = Carrier (RecType Carrier)
+
+    record Language : Set₁ where
+
+      field
+        _≈_ : Type → Type → Set
+
+      data _≈_⊓_ (T : Type) : Type → Type → Set where
+        rel : ∀ {T₁ T₂} → T ≈ T₁ → T ≈ T₂ → T ≈ T₁ ⊓ T₂
+
+      data _≈-dom_ (T : Type) : Type → Set where
+        rel : ∀ {T′} → T ≈-dom (unit (T ➔ T′))
+
+      data _≈-cod_ (T : Type) : Type → Set where
+        rel : ∀ {T′} →  T ≈-cod (unit (T′ ➔ T))
+
+      data Term {n} (Γ : Vec (Type) n) : Type → Set where
+        int : (x : ℤ) → Term Γ (unit Int)
+        bool : (x : 𝔹) → Term Γ (unit Bool)
+        var : ∀ {T} (i : Fin n) → T ≡ lookup i Γ → Term Γ T
+        abs : (T₁ : Type) {T₂ : Type} (t : Term (T₁ ∷ Γ) T₂)
+              → Term Γ (unit (T₁ ➔ T₂))
+        _∙_ : ∀ {T₁ T₂ T₃}
+              → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
+              → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
+              → Term Γ T₃
+        _+_ : ∀ {T₁ T₂}
+              → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
+              → T₁ ≈ unit Int → T₂ ≈ unit Int
+              → Term Γ (unit Int)
+        if_then_else_ : ∀ {T₁ T₂ T₃ T₄}
+                        → (t₁ : Term Γ T₁) (t₂ : Term Γ T₁) (t₃ : Term Γ T₁)
+                        → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
+                        → Term Γ T₄
+        _∶_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : Type) → T₁ ≈ T₂ → Term Γ T₂
+
+  open Under
+    using ( Type )
+
+  open UnitFunctor
+    using ( unit )
+
+  data All {U V : UnitFunctor}
+    (P : REL (Type U) (Type V) lzero) : REL (Type U) (Type V) lzero where
+    int : All P (unit U Int) (unit V Int)
+    bool : All P (unit U Bool) (unit V Bool)
+    _➔_ : ∀ {T₁₁ T₁₂ T₂₁ T₂₂} → P T₁₁ T₂₁ → P T₁₂ T₂₂ → All P (unit U (T₁₁ ➔ T₁₂)) (unit V (T₂₁ ➔ T₂₂))
+
+open UnitFunctor
+  using ( Carrier ; unit )
+
+module STFL where
+
+  open ATFL.Under Identity.functor public
+
+  open Language record
+    { _≈_ = _≡_
+    } public
+
+module GTFL where
+
+  open ATFL
+
+  open Under Gradual.functor public
+    renaming ( Type to GType )
+
+  open STFL
+    hiding ( Language )
+
+  open Gradual
+    using ( ¿ ; type )
+
+  ℙ : Set → Set₁
+  ℙ T = Pred T _
+
+  data γ : REL GType Type lzero where
+    ¿ : ∀ {T} → γ ¿ T
+    type : ∀ {~T T} → All {Gradual.functor} {Identity.functor} γ ~T T → γ ~T T
+
+  Unary : ∀ {ℓ} → PT Type GType ℓ ℓ
+  Unary P T = Power.Unary P (γ T)
+
+  Binary : ∀ {ℓ} → Rel Type ℓ → Rel GType ℓ
+  Binary P T₁ T₂ = Power.Binary P (γ T₁) (γ T₂)
+
+  _≅_ : Rel GType _
+  _≅_ = Binary _≡_
+
+  open Language record
+    { _≈_ = _≅_
+    } public
