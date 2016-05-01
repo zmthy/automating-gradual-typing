@@ -7,6 +7,9 @@ open import Data.Bool
   using ()
   renaming ( Bool to 𝔹 )
 
+open import Data.Fin
+  using ( Fin ; zero ; suc )
+
 open import Data.Integer
   as Int
   using ( ℤ )
@@ -14,8 +17,8 @@ open import Data.Integer
 open import Data.Nat
   using ( zero ; suc )
 
-open import Data.Fin
-  using ( Fin ; zero ; suc )
+open import Data.Product
+  using ( Σ ; _,_ ; proj₁ ; proj₂ ; _×_ ; uncurry )
 
 open import Data.Vec
   using ( Vec ; [] ; _∷_ ; lookup )
@@ -114,7 +117,6 @@ module Gradual where
     ; lift-unit = refl
     }
 
-
 open Gradual
   using ( ¿ ; type )
 
@@ -130,13 +132,28 @@ module Power where
               (F : Pred A f) (G : Pred B g) : Set (a ⊔ b ⊔ ℓ ⊔ f ⊔ g) where
     raise : ∀ x y → x ∈ F → y ∈ G → P x y → Binary P F G
 
+open Power
+  using ( raise )
+
 module ATFL where
 
-  {-# NO_POSITIVITY_CHECK #-}
-  data RecType (F : Set → Set) : Set where
-    Int : RecType F
-    Bool : RecType F
-    _➔_ : (T₁ T₂ : F (RecType F)) → RecType F
+  module _ where
+
+    open UnitFunctor
+      using ( Carrier ; lift )
+
+    {-# NO_POSITIVITY_CHECK #-}
+    data RecType (F : Set → Set) : Set where
+      Int : RecType F
+      Bool : RecType F
+      _➔_ : (T₁ T₂ : F (RecType F)) → RecType F
+
+    {-# TERMINATING #-}
+    map : ∀ U V → (f : ∀ {A} → Carrier U A → Carrier V A)
+          → RecType (Carrier U) → RecType (Carrier V)
+    map U V f Int = Int
+    map U V f Bool = Bool
+    map U V f (T₁ ➔ T₂) = f (lift U (map U V f) T₁) ➔ f (lift U (map U V f) T₂)
 
   module Under (U : UnitFunctor {lzero} {lzero}) where
 
@@ -184,11 +201,12 @@ module ATFL where
   open UnitFunctor
     using ( unit )
 
-  data All {U V : UnitFunctor}
+  data All (U V : UnitFunctor)
     (P : REL (Type U) (Type V) lzero) : REL (Type U) (Type V) lzero where
-    int : All P (unit U Int) (unit V Int)
-    bool : All P (unit U Bool) (unit V Bool)
-    _➔_ : ∀ {T₁₁ T₁₂ T₂₁ T₂₂} → P T₁₁ T₂₁ → P T₁₂ T₂₂ → All P (unit U (T₁₁ ➔ T₁₂)) (unit V (T₂₁ ➔ T₂₂))
+    int : All U V P (unit U Int) (unit V Int)
+    bool : All U V P (unit U Bool) (unit V Bool)
+    _➔_ : ∀ {T₁₁ T₁₂ T₂₁ T₂₂} → P T₁₁ T₂₁ → P T₁₂ T₂₂
+          → All U V P (unit U (T₁₁ ➔ T₁₂)) (unit V (T₂₁ ➔ T₂₂))
 
 open UnitFunctor
   using ( Carrier ; unit )
@@ -219,7 +237,7 @@ module GTFL where
 
   data γ : REL GType Type lzero where
     ¿ : ∀ {T} → γ ¿ T
-    type : ∀ {~T T} → All {Gradual.functor} {Identity.functor} γ ~T T → γ ~T T
+    type : ∀ {~T T} → All Gradual.functor Identity.functor γ ~T T → γ ~T T
 
   Unary : ∀ {ℓ} → PT Type GType ℓ ℓ
   Unary P T = Power.Unary P (γ T)
