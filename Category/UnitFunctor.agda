@@ -4,7 +4,7 @@ open import Data.Product
   using ( _,_ ; _×_ ; <_,_> ; map ; uncurry )
 
 open import Function
-  using ( _$_ ; id ; _∘_ )
+  using ( _$_ ; id ; const ; _∘_ )
 
 open import Level
   using ( suc ; _⊔_ )
@@ -42,6 +42,15 @@ module Identity where
       }
     ; unit = id
     ; lift-unit = refl
+    }
+
+module Constant {a} (A : Set a) where
+
+  functor : Functor {a} (const A)
+  functor = record
+    { lift = const id
+    ; identity = λ _ → refl
+    ; composition = λ _ → refl
     }
 
 module Product {a b} (U V : UnitFunctor {a} {b}) where

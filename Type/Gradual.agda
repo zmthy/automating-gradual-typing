@@ -139,8 +139,11 @@ module ATFL where
 
   module _ where
 
+    open Functor
+      using ( lift )
+
     open UnitFunctor
-      using ( Carrier ; lift )
+      using ( Carrier )
 
     {-# NO_POSITIVITY_CHECK #-}
     data RecType (F : Set → Set) : Set where
@@ -149,11 +152,11 @@ module ATFL where
       _➔_ : (T₁ T₂ : F (RecType F)) → RecType F
 
     {-# TERMINATING #-}
-    map : ∀ U V → (f : ∀ {A} → Carrier U A → Carrier V A)
-          → RecType (Carrier U) → RecType (Carrier V)
-    map U V f Int = Int
-    map U V f Bool = Bool
-    map U V f (T₁ ➔ T₂) = f (lift U (map U V f) T₁) ➔ f (lift U (map U V f) T₂)
+    map : ∀ {F G} → Functor F → (f : F (RecType G) → G (RecType G))
+          → RecType F → RecType G
+    map F f Int = Int
+    map F f Bool = Bool
+    map F f (T₁ ➔ T₂) = f (lift F (map F f) T₁) ➔ f (lift F (map F f) T₂)
 
   module Under (U : UnitFunctor {lzero} {lzero}) where
 
@@ -195,19 +198,6 @@ module ATFL where
                         → Term Γ T₄
         _∶_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : Type) → T₁ ≈ T₂ → Term Γ T₂
 
-  open Under
-    using ( Type )
-
-  open UnitFunctor
-    using ( unit )
-
-  data All (U V : UnitFunctor)
-    (P : REL (Type U) (Type V) lzero) : REL (Type U) (Type V) lzero where
-    int : All U V P (unit U Int) (unit V Int)
-    bool : All U V P (unit U Bool) (unit V Bool)
-    _➔_ : ∀ {T₁₁ T₁₂ T₂₁ T₂₂} → P T₁₁ T₂₁ → P T₁₂ T₂₂
-          → All U V P (unit U (T₁₁ ➔ T₁₂)) (unit V (T₂₁ ➔ T₂₂))
-
 open UnitFunctor
   using ( Carrier ; unit )
 
@@ -235,9 +225,12 @@ module GTFL where
   ℙ : Set → Set₁
   ℙ T = Pred T _
 
+  {-# NO_POSITIVITY_CHECK #-}
   data γ : REL GType Type lzero where
     ¿ : ∀ {T} → γ ¿ T
-    type : ∀ {~T T} → All Gradual.functor Identity.functor γ ~T T → γ ~T T
+    type : (T : RecType (λ _ → Σ (GType × Type) (uncurry γ)))
+           → γ (type (map (Constant.functor _) (proj₁ ∘ proj₁) T))
+               (map (Constant.functor _) (proj₂ ∘ proj₁) T)
 
   Unary : ∀ {ℓ} → PT Type GType ℓ ℓ
   Unary P T = Power.Unary P (γ T)
@@ -247,6 +240,13 @@ module GTFL where
 
   _≅_ : Rel GType _
   _≅_ = Binary _≡_
+
+  example : type (type Int ➔ ¿) ≅ type (¿ ➔ type Bool)
+  example = raise (Int ➔ Bool)
+                  (Int ➔ Bool)
+                  (type (((type Int , Int) , type Int) ➔ ((¿ , Bool) , ¿)))
+                  (type (((¿ , Int) , ¿) ➔ ((type Bool , Bool) , type Bool)))
+                  refl
 
   open Language record
     { _≈_ = _≅_
