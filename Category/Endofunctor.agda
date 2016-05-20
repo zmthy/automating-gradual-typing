@@ -1,5 +1,9 @@
 module Category.Endofunctor where
 
+open import Data.Maybe
+  using ( Maybe ; just ; nothing )
+  hiding ( module Maybe )
+
 open import Data.Product
   using ( _,_ ; _×_ ; map )
 
@@ -40,6 +44,15 @@ module Constant {a} (A : Set a) where
       ; identity = λ _ → refl
       ; composition = λ _ → refl
       }
+
+module Maybe {a} where
+
+  functor : Functor {a} Maybe
+  functor = record
+    { lift = λ { f (just x) → just (f x) ; f nothing → nothing }
+    ; identity = λ { (just x) → refl ; nothing → refl }
+    ; composition = λ { (just x) → refl ; nothing → refl }
+    }
 
 module Product {a b} {F G : Set a → Set b} (f : Functor F) (g : Functor G) where
 

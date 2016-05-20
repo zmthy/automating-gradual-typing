@@ -4,6 +4,10 @@ open import Category.Endofunctor
   as Endofunctor
   using ( Functor )
 
+open import Data.Maybe
+  using ( Maybe ; just ; nothing )
+  hiding ( module Maybe )
+
 open import Data.Product
   using ( _,_ ; _×_ ; <_,_> )
 
@@ -48,6 +52,16 @@ module Constant {a} (A : Set a) (x : A) where
       ; unit = const x
       ; lift-unit = refl
       }
+
+module Maybe {a} where
+
+  functor : UnitFunctor {a}
+  functor = record
+    { Carrier = Maybe
+    ; functor = Endofunctor.Maybe.functor
+    ; unit = just
+    ; lift-unit = refl
+    }
 
 module Product {a b} (U V : UnitFunctor {a} {b}) where
 

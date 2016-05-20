@@ -1,10 +1,16 @@
 module Type.Gradual where
 
 open import Category.Endofunctor
-  using ( Functor ; module Constant )
+  using ( Functor
+        ; module Constant
+        ; module Identity
+        ; module Maybe )
 
 open import Category.UnitFunctor
-  using ( UnitFunctor ; module Identity )
+  using ( UnitFunctor )
+  renaming ( module Constant to ConstantUnit
+           ; module Identity to IdentityUnit
+           ; module Maybe to MaybeUnit )
 
 open import Data.Bool
   as Bool
@@ -18,17 +24,23 @@ open import Data.Integer
   as Int
   using ( ℤ ; +_ )
 
+open import Data.Maybe
+  using ( just ; nothing )
+
 open import Data.Nat
   using ( ℕ ; zero ; suc )
 
 open import Data.Product
   using ( Σ ; _,_ ; proj₁ ; proj₂ ; _×_ ; ,_ ; uncurry )
 
+open import Data.Unit
+  using ( ⊤ ; tt )
+
 open import Data.Vec
   using ( Vec ; [] ; _∷_ ; lookup )
 
 open import Function
-  using ( id ; _∘_ )
+  using ( const ; id ; _∘_ )
 
 open import Level
   using ( _⊔_ )
@@ -54,43 +66,33 @@ record RecNatTrans {a} : Set (lsuc a) where
     Type : (Set a → Set a) → Set a
     map : ∀ {F G} ⦃ _ : Functor F ⦄ → (F (Type G) → G (Type G)) → Type F → Type G
 
-module Gradual {a} (t : RecNatTrans {a}) where
+record Abstract {a} (t : RecNatTrans {a}) : Set (lsuc a) where
+  field
+    {F} : Set a → Set a
+    functor : Functor F
+
+  open Functor functor
+    using ( lift )
 
   open RecNatTrans t
     using ( map )
     renaming ( Type to RecType )
 
-  data Maybe {a} (A : Set a) : Set a where
-    ¿ : Maybe A
-    type : A → Maybe A
-
-  functor : UnitFunctor {a}
-  functor = record
-    { Carrier = Maybe
-    ; functor = record
-      { lift = λ { f ¿ → ¿ ; f (type x) → type (f x) }
-      ; identity = λ { ¿ → refl ; (type x) → refl }
-      ; composition = λ { ¿ → refl ; (type x) → refl }
-      }
-    ; unit = type
-    ; lift-unit = refl
-    }
-
   Type = RecType id
-  GType = Maybe (RecType Maybe)
+  FType = F (RecType F)
 
   {-# NO_POSITIVITY_CHECK #-}
-  data γ : REL GType Type a where
-    ¿ : ∀ {T} → γ ¿ T
-    type : (T : RecType (λ _ → Σ (GType × Type) (uncurry γ)))
-           → γ (type (map ⦃ Constant.functor _ ⦄ (proj₁ ∘ proj₁) T))
-               (map ⦃ Constant.functor _ ⦄ (proj₂ ∘ proj₁) T)
+  data γ : REL FType Type a where
+    rel : ∀ {T}
+          → (f : F (Σ (RecType (const (Σ (FType × Type) (uncurry γ))))
+                      (_≡_ T ∘ map ⦃ Constant.functor _ ⦄ (proj₂ ∘ proj₁))))
+          → γ (lift (map ⦃ Constant.functor _ ⦄ (proj₁ ∘ proj₁) ∘ proj₁) f) T
 
-  GPred : ∀ {ℓ} → PT Type GType ℓ (ℓ ⊔ a)
-  GPred P T = ℙ-Pred P (γ T)
+  FPred : ∀ {ℓ} → PT Type FType ℓ (ℓ ⊔ a)
+  FPred P T = ℙ-Pred P (γ T)
 
-  GRel : ∀ {ℓ} → Rel Type ℓ → Rel GType (ℓ ⊔ a)
-  GRel P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)
+  FRel : ∀ {ℓ} → Rel Type ℓ → Rel FType (ℓ ⊔ a)
+  FRel P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)
 
 module ATFL where
 
@@ -171,31 +173,77 @@ open UnitFunctor
 
 module STFL where
 
-  open ATFL.Language {functor = Identity.functor} record
-    { _≈_ = _≡_
+  open ATFL
+
+  open Abstract {t = ATFL.type} record
+    { functor = Identity.functor
+    } renaming ( FRel to IRel )
+
+  open Language {functor = IdentityUnit.functor} record
+    { _≈_ = IRel _≡_
     } public
+
+  ≡-example : (Int ➔ Bool) ≈ (Int ➔ Bool)
+  ≡-example = raise refl
+                    (rel (((, rel (, refl)) ➔ (, rel (, refl))) , refl))
+                    (rel (((, rel (, refl)) ➔ (, rel (, refl))) , refl))
+
+  term-example : Term 0
+  term-example = abs Int (var zero ∶ Int)
+
+  typed-example : [] ⊢ term-example ∶ (Int ➔ Int)
+  typed-example = abs (cast (var refl) (raise refl
+                                              (rel (, refl))
+                                              (rel (, refl))))
+
+module DTFL where
+
+  open ATFL
+
+  open Abstract {t = ATFL.type} record
+    { functor = Constant.functor ⊤
+    } renaming ( FType to DType ; FRel to DRel )
+
+  open Language {functor = ConstantUnit.functor ⊤ tt} record
+    { _≈_ = DRel _≡_
+    } public
+      hiding ( Type )
+
+  ≈-example : {T : Type} → tt ≈ tt
+  ≈-example {T} = raise {x = T} refl (rel tt) (rel tt)
+
+  term-example : Term 0
+  term-example = abs tt (var zero ∶ tt)
+
+  typed-example : [] ⊢ term-example ∶ tt
+  typed-example = abs (cast (var refl) (raise {x = Int} refl (rel tt) (rel tt)))
 
 module GTFL where
 
   open ATFL
-    hiding ( type )
 
-  open Gradual ATFL.type
-    using ( ¿ ; type ; GRel )
-    renaming ( functor to gradual )
+  open Abstract {t = ATFL.type} record
+    { functor = Maybe.functor
+    } renaming ( FRel to GRel )
 
-  open Language {functor = gradual} record
+  open Language {functor = MaybeUnit.functor} record
     { _≈_ = GRel _≡_
     } public
-    renaming ( _≈_ to _~_ )
+      renaming ( Type to GType ; _≈_ to _~_ )
 
-  ~-example : type (type Int ➔ ¿) ~ type (¿ ➔ type Bool)
-  ~-example = raise (type (((, type Int) ➔ (, ¿))))
-                    (type ((, ¿) ➔ (, type Bool)))
-                    refl
+  ~-example : just (just Int ➔ nothing) ~ just (nothing ➔ just Bool)
+  ~-example = raise {x = Int ➔ Bool} refl
+                    (rel
+                      (just
+                        (((, rel (just (, refl))) ➔ (, rel nothing)) , refl)))
+                    (rel
+                      (just
+                        (((, rel nothing) ➔ (, rel (just (, refl)))) , refl)))
 
   term-example : Term 0
-  term-example = abs ¿ (var zero ∶ type Int)
+  term-example = abs nothing (var zero ∶ just Int)
 
-  typed-example : [] ⊢ term-example ∶ type (¿ ➔ type Int)
-  typed-example = abs (cast (var refl) (raise ¿ (type Int) refl))
+  typed-example : [] ⊢ term-example ∶ just (nothing ➔ just Int)
+  typed-example = abs (cast (var refl) (raise {x = Int} refl
+                                              (rel nothing)
+                                              (rel (just (, refl)))))
