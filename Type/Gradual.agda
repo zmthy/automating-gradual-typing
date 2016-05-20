@@ -19,7 +19,7 @@ open import Data.Integer
   using ( ℤ ; +_ )
 
 open import Data.Nat
-  using ( zero ; suc )
+  using ( ℕ ; zero ; suc )
 
 open import Data.Product
   using ( Σ ; _,_ ; proj₁ ; proj₂ ; _×_ ; ,_ ; uncurry )
@@ -129,34 +129,41 @@ module ATFL where
       field
         _≈_ : Type → Type → Set
 
-      data _≈_⊓_ (T : Type) : Type → Type → Set where
-        rel : ∀ {T₁ T₂} → T ≈ T₁ → T ≈ T₂ → T ≈ T₁ ⊓ T₂
+      data _≈_⊓_ (T₁ T₂ T₃ : Type) : Set where
+        rel : T₁ ≈ T₂ → T₁ ≈ T₃ → T₁ ≈ T₂ ⊓ T₃
 
-      data _≈-dom_ (T : Type) : Type → Set where
-        rel : ∀ {T′} → T ≈-dom (unit (T ➔ T′))
+      data _≈-dom_ (T₁ T₂ : Type) : Set where
+        rel : ∀ {T₃} → T₂ ≈ unit (T₁ ➔ T₃) → T₁ ≈-dom T₂
 
-      data _≈-cod_ (T : Type) : Type → Set where
-        rel : ∀ {T′} → T ≈-cod (unit (T′ ➔ T))
+      data _≈-cod_ (T₁ T₂ : Type) : Set where
+        rel : ∀ {T₃} → T₂ ≈ unit (T₃ ➔ T₁) → T₁ ≈-cod T₂
 
-      data Term {n} (Γ : Vec (Type) n) : Type → Set where
-        int : (x : ℤ) → Term Γ (unit Int)
-        bool : (x : 𝔹) → Term Γ (unit Bool)
-        var : ∀ {T} (i : Fin n) → T ≡ lookup i Γ → Term Γ T
-        abs : (T₁ : Type) {T₂ : Type} (t : Term (T₁ ∷ Γ) T₂)
-              → Term Γ (unit (T₁ ➔ T₂))
-        _∙_⊣_,_ : ∀ {T₁ T₂ T₃}
-                  → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
-                  → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
-                  → Term Γ T₃
-        _+_⊣_,_ : ∀ {T₁ T₂}
-                  → (t₁ : Term Γ T₁) (t₂ : Term Γ T₂)
-                  → T₁ ≈ unit Int → T₂ ≈ unit Int
-                  → Term Γ (unit Int)
-        if_then_else_ : ∀ {T₁ T₂ T₃ T₄}
-                        → (t₁ : Term Γ T₁) (t₂ : Term Γ T₁) (t₃ : Term Γ T₁)
-                        → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
-                        → Term Γ T₄
-        _∶_⊣_ : ∀ {T₁} (t : Term Γ T₁) (T₂ : Type) → T₁ ≈ T₂ → Term Γ T₂
+      data Term (n : ℕ) : Set where
+        int : (x : ℤ) → Term n
+        bool : (x : 𝔹) → Term n
+        var : (i : Fin n) → Term n
+        abs : (T : Type) (t : Term (suc n)) → Term n
+        _∙_ : (t₁ t₂ : Term n) → Term n
+        _+_ : (t₁ t₂ : Term n) → Term n
+        if_then_else_ : (t₁ t₂ t₃ : Term n) → Term n
+        _∶_ : (t : Term n) (T : Type) → Term n
+
+      data _⊢_∶_ {n} (Γ : Vec Type n) : Term n → Type → Set where
+        int : ∀ {x} → Γ ⊢ int x ∶ unit Int
+        bool : ∀ {x} → Γ ⊢ bool x ∶ unit Bool
+        var : ∀ {i T} → T ≡ lookup i Γ → Γ ⊢ var i ∶ T
+        abs : ∀ {T₁ T₂ t} → (T₁ ∷ Γ) ⊢ t ∶ T₂ → Γ ⊢ abs T₁ t ∶ unit (T₁ ➔ T₂)
+        app : ∀ {T₁ T₂ T₃ t₁ t₂}
+              → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
+              → Γ ⊢ (t₁ ∙ t₂) ∶ T₃
+        add : ∀ {T₁ T₂ t₁ t₂}
+              → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₁ ≈ unit Int → T₂ ≈ unit Int
+              → Γ ⊢ (t₁ + t₂) ∶ unit Int
+        cond : ∀ {T₁ T₂ T₃ T₄ t₁ t₂ t₃}
+               → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → Γ ⊢ t₃ ∶ T₃
+               → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
+               → Γ ⊢ if t₁ then t₂ else t₃ ∶ T₄
+        cast : ∀ {T₁ T₂ t} → Γ ⊢ t ∶ T₁ → T₁ ≈ T₂ → Γ ⊢ (t ∶ T₂) ∶ T₂
 
 open UnitFunctor
   using ( Carrier ; unit )
@@ -180,17 +187,18 @@ module GTFL where
   open Under functor public
     renaming ( Type to GType )
 
-  _≅_ : Rel GType _
-  _≅_ = Binary _≡_
+  open Language record
+    { _≈_ = Binary _≡_
+    } public
+    renaming ( _≈_ to _~_ )
 
-  ≅-example : type (type Int ➔ ¿) ≅ type (¿ ➔ type Bool)
-  ≅-example = raise (type ((, type Int) ➔ (, ¿)))
+  ~-example : type (type Int ➔ ¿) ~ type (¿ ➔ type Bool)
+  ~-example = raise (type (((, type Int) ➔ (, ¿))))
                     (type ((, ¿) ➔ (, type Bool)))
                     refl
 
-  open Language record
-    { _≈_ = _≅_
-    } public
+  term-example : Term 0
+  term-example = abs ¿ (var zero ∶ type Int)
 
-  term-example : Term [] ¿
-  term-example = int (+ 1) ∶ ¿ ⊣ raise (type Int) ¿ refl
+  typed-example : [] ⊢ term-example ∶ type (¿ ➔ type Int)
+  typed-example = abs (cast (var refl) (raise ¿ (type Int) refl))
