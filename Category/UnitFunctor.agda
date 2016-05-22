@@ -29,34 +29,37 @@ record UnitFunctor {a b} : Set (suc (a ⊔ b)) where
 
 module Identity {a} where
 
-  functor : UnitFunctor {a}
-  functor = record
-    { Carrier = id
-    ; functor = Endofunctor.Identity.functor
-    ; unit = id
-    ; lift-unit = refl
-    }
+  instance
+    functor : UnitFunctor {a}
+    functor = record
+      { Carrier = id
+      ; functor = Endofunctor.Identity.functor
+      ; unit = id
+      ; lift-unit = refl
+      }
 
 module Constant {a} (A : Set a) (x : A) where
 
-  functor : UnitFunctor {a}
-  functor = record
-    { Carrier = const A
-    ; functor = Endofunctor.Constant.functor A
-    ; unit = const x
-    ; lift-unit = refl
-    }
+  instance
+    functor : UnitFunctor {a}
+    functor = record
+      { Carrier = const A
+      ; functor = Endofunctor.Constant.functor A
+      ; unit = const x
+      ; lift-unit = refl
+      }
 
 module Product {a b} (U V : UnitFunctor {a} {b}) where
 
   open UnitFunctor
     hiding ( functor )
 
-  functor : UnitFunctor {a} {b}
-  functor = record
-    { Carrier = λ A → Carrier U A × Carrier V A
-    ; functor = Endofunctor.Product.functor (UnitFunctor.functor U)
-                                            (UnitFunctor.functor V)
-    ; unit = < unit U , unit V >
-    ; lift-unit = cong₂ _,_ (lift-unit U) (lift-unit V)
-    }
+  instance
+    functor : UnitFunctor {a} {b}
+    functor = record
+      { Carrier = λ A → Carrier U A × Carrier V A
+      ; functor = Endofunctor.Product.functor (UnitFunctor.functor U)
+                                              (UnitFunctor.functor V)
+      ; unit = < unit U , unit V >
+      ; lift-unit = cong₂ _,_ (lift-unit U) (lift-unit V)
+      }

@@ -23,27 +23,30 @@ open Functor
 
 module Identity where
 
-  functor : ∀ {a} → Functor {a} id
-  functor = record
-    { lift = _$_
-    ; identity = λ _ → refl
-    ; composition = λ _ → refl
-    }
+  instance
+    functor : ∀ {a} → Functor {a} id
+    functor = record
+      { lift = _$_
+      ; identity = λ _ → refl
+      ; composition = λ _ → refl
+      }
 
 module Constant {a} (A : Set a) where
 
-  functor : Functor {a} (const A)
-  functor = record
-    { lift = const id
-    ; identity = λ _ → refl
-    ; composition = λ _ → refl
-    }
+  instance
+    functor : Functor {a} (const A)
+    functor = record
+      { lift = const id
+      ; identity = λ _ → refl
+      ; composition = λ _ → refl
+      }
 
 module Product {a b} {F G : Set a → Set b} (f : Functor F) (g : Functor G) where
 
-  functor : Functor {a} {b} (λ A → F A × G A)
-  functor = record
-    { lift = λ h → map (lift f h) (lift g h)
-    ; identity = λ { (x , y) → cong₂ _,_ (identity f x) (identity g y) }
-    ; composition = λ { (x , y) → cong₂ _,_ (composition f x) (composition g y) }
-    }
+  instance
+    functor : Functor {a} {b} (λ A → F A × G A)
+    functor = record
+      { lift = λ h → map (lift f h) (lift g h)
+      ; identity = λ { (x , y) → cong₂ _,_ (identity f x) (identity g y) }
+      ; composition = λ { (x , y) → cong₂ _,_ (composition f x) (composition g y) }
+      }
