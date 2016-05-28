@@ -86,11 +86,11 @@ module Gradual {a} (t : RecNatTrans {a}) where
            → γ (type (map ⦃ Constant.functor _ ⦄ (proj₁ ∘ proj₁) T))
                (map ⦃ Constant.functor _ ⦄ (proj₂ ∘ proj₁) T)
 
-  Unary : ∀ {ℓ} → PT Type GType ℓ (ℓ ⊔ a)
-  Unary P T = ℙ-Pred P (γ T)
+  GPred : ∀ {ℓ} → PT Type GType ℓ (ℓ ⊔ a)
+  GPred P T = ℙ-Pred P (γ T)
 
-  Binary : ∀ {ℓ} → Rel Type ℓ → Rel GType (ℓ ⊔ a)
-  Binary P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)
+  GRel : ∀ {ℓ} → Rel Type ℓ → Rel GType (ℓ ⊔ a)
+  GRel P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)
 
 module ATFL where
 
@@ -181,11 +181,11 @@ module GTFL where
     hiding ( type )
 
   open Gradual ATFL.type
-    using ( ¿ ; type ; Binary )
+    using ( ¿ ; type ; GRel )
     renaming ( functor to gradual )
 
   open Language {functor = gradual} record
-    { _≈_ = Binary _≡_
+    { _≈_ = GRel _≡_
     } public
     renaming ( _≈_ to _~_ )
 
