@@ -15,7 +15,7 @@ open import Relation.Binary.PropositionalEquality
 record Functor {a b} (F : Set a → Set b) : Set (suc a ⊔ b) where
   field
     lift : ∀ {A B} → (A → B) → F A → F B
-    identity : ∀ {A} x → lift {A} id x ≡ id x
+    identity : ∀ {A} x → lift {A} id x ≡ x
     composition : ∀ {A B C} {f : A → B} {g : B → C} x
                   → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
 
