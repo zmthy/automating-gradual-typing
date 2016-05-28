@@ -4,12 +4,14 @@ open import Category.Endofunctor
   using ( Functor
         ; module Constant
         ; module Identity
+        ; module List
         ; module Maybe )
 
 open import Category.UnitFunctor
   using ( UnitFunctor )
   renaming ( module Constant to ConstantUnit
            ; module Identity to IdentityUnit
+           ; module List to ListUnit
            ; module Maybe to MaybeUnit )
 
 open import Data.Bool
@@ -23,6 +25,9 @@ open import Data.Fin
 open import Data.Integer
   as Int
   using ( ℤ ; +_ )
+
+open import Data.List
+  using ( [] ; [_] )
 
 open import Data.Maybe
   using ( just ; nothing )
@@ -192,9 +197,8 @@ module STFL where
   term-example = abs Int (var zero ∶ Int)
 
   typed-example : [] ⊢ term-example ∶ (Int ➔ Int)
-  typed-example = abs (cast (var refl) (raise refl
-                                              (rel (, refl))
-                                              (rel (, refl))))
+  typed-example = abs (cast (var refl) (raise refl (rel (, refl))
+                                                   (rel (, refl))))
 
 module DTFL where
 
@@ -202,7 +206,7 @@ module DTFL where
 
   open Abstract {t = ATFL.type} record
     { functor = Constant.functor ⊤
-    } renaming ( FType to DType ; FRel to DRel )
+    } renaming ( FRel to DRel )
 
   open Language {functor = ConstantUnit.functor ⊤ tt} record
     { _≈_ = DRel _≡_
@@ -215,8 +219,8 @@ module DTFL where
   term-example : Term 0
   term-example = abs tt (var zero ∶ tt)
 
-  typed-example : [] ⊢ term-example ∶ tt
-  typed-example = abs (cast (var refl) (raise {x = Int} refl (rel tt) (rel tt)))
+  typed-example : {T : Type} → [] ⊢ term-example ∶ tt
+  typed-example {T} = abs (cast (var refl) (raise {x = T} refl (rel tt) (rel tt)))
 
 module GTFL where
 
@@ -229,10 +233,9 @@ module GTFL where
   open Language {functor = MaybeUnit.functor} record
     { _≈_ = GRel _≡_
     } public
-      renaming ( Type to GType ; _≈_ to _~_ )
 
-  ~-example : just (just Int ➔ nothing) ~ just (nothing ➔ just Bool)
-  ~-example = raise {x = Int ➔ Bool} refl
+  ≈-example : just (just Int ➔ nothing) ≈ just (nothing ➔ just Bool)
+  ≈-example = raise refl
                     (rel
                       (just
                         (((, rel (just (, refl))) ➔ (, rel nothing)) , refl)))
@@ -244,6 +247,28 @@ module GTFL where
   term-example = abs nothing (var zero ∶ just Int)
 
   typed-example : [] ⊢ term-example ∶ just (nothing ➔ just Int)
-  typed-example = abs (cast (var refl) (raise {x = Int} refl
-                                              (rel nothing)
-                                              (rel (just (, refl)))))
+  typed-example = abs (cast (var refl) (raise refl (rel nothing)
+                                                   (rel (just (, refl)))))
+
+module LTFL where
+
+  open ATFL
+
+  open Abstract {t = ATFL.type} record
+    { functor = List.functor
+    } renaming ( FRel to LRel )
+
+  open Language {functor = ListUnit.functor} record
+    { _≈_ = LRel _≡_
+    } public
+
+  ≈-example : [ [ Int ] ➔ [] ] ≈ [ [] ➔ [ Bool ] ]
+  ≈-example = raise refl
+                    (rel [ ((, rel [ (, refl) ]) ➔ (, rel [])) , refl ])
+                    (rel [ ((, rel []) ➔ (, rel [ (, refl ) ])) , refl ])
+
+  term-example : Term 0
+  term-example = abs [] (var zero ∶ [ Int ])
+
+  typed-example : [] ⊢ term-example ∶ [ [] ➔ [ Int ] ]
+  typed-example = abs (cast (var refl) (raise refl (rel []) (rel [ (, refl) ])))

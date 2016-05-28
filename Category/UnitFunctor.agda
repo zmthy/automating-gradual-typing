@@ -4,6 +4,10 @@ open import Category.Endofunctor
   as Endofunctor
   using ( Functor )
 
+open import Data.List
+  using ( List ; [_] )
+  hiding ( module List )
+
 open import Data.Maybe
   using ( Maybe ; just ; nothing )
   hiding ( module Maybe )
@@ -12,7 +16,7 @@ open import Data.Product
   using ( _,_ ; _×_ ; <_,_> )
 
 open import Function
-  using ( _$_ ; id ; const )
+  using ( _$_ ; const ; id )
 
 open import Level
   using ( suc ; _⊔_ )
@@ -60,6 +64,16 @@ module Maybe {a} where
     { Carrier = Maybe
     ; functor = Endofunctor.Maybe.functor
     ; unit = just
+    ; lift-unit = refl
+    }
+
+module List {a} where
+
+  functor : UnitFunctor {a}
+  functor = record
+    { Carrier = List
+    ; functor = Endofunctor.List.functor
+    ; unit = [_]
     ; lift-unit = refl
     }
 
