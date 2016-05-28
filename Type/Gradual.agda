@@ -99,7 +99,7 @@ record Abstract {a} (t : RecNatTrans {a}) : Set (lsuc a) where
   FRel : ∀ {ℓ} → Rel Type ℓ → Rel FType (ℓ ⊔ a)
   FRel P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)
 
-module ATFL where
+module ATFL (uf : UnitFunctor {lzero} {lzero}) where
 
   module _ where
 
@@ -128,65 +128,64 @@ module ATFL where
     ; map = map
     }
 
-  record Language (functor : UnitFunctor) : Set₁ where
+  open UnitFunctor uf
 
-    open UnitFunctor functor
+  module Lift = Abstract {t = type} record
+    { functor = functor
+    }
 
-    Type = Carrier (RecType Carrier)
+  open Lift
+    using ( Type ; FType ; rel )
+    public
 
-    field
-      _≈_ : Rel Type lzero
+  open Lift
+    using ( FRel )
 
-    data _≈_⊓_ (T₁ T₂ T₃ : Type) : Set where
-      rel : T₁ ≈ T₂ → T₁ ≈ T₃ → T₁ ≈ T₂ ⊓ T₃
+  _≈_ : Rel FType lzero
+  _≈_ = FRel _≡_
 
-    data _≈-dom_ (T₁ T₂ : Type) : Set where
-      rel : ∀ {T₃} → T₂ ≈ unit (T₁ ➔ T₃) → T₁ ≈-dom T₂
+  data _≈_⊓_ (T₁ T₂ T₃ : FType) : Set where
+    rel : T₁ ≈ T₂ → T₁ ≈ T₃ → T₁ ≈ T₂ ⊓ T₃
 
-    data _≈-cod_ (T₁ T₂ : Type) : Set where
-      rel : ∀ {T₃} → T₂ ≈ unit (T₃ ➔ T₁) → T₁ ≈-cod T₂
+  data _≈-dom_ (T₁ T₂ : FType) : Set where
+    rel : ∀ {T₃} → T₂ ≈ unit (T₁ ➔ T₃) → T₁ ≈-dom T₂
 
-    data Term (n : ℕ) : Set where
-      int : (x : ℤ) → Term n
-      bool : (x : 𝔹) → Term n
-      var : (i : Fin n) → Term n
-      abs : (T : Type) (t : Term (suc n)) → Term n
-      _∙_ : (t₁ t₂ : Term n) → Term n
-      _+_ : (t₁ t₂ : Term n) → Term n
-      if_then_else_ : (t₁ t₂ t₃ : Term n) → Term n
-      _∶_ : (t : Term n) (T : Type) → Term n
+  data _≈-cod_ (T₁ T₂ : FType) : Set where
+    rel : ∀ {T₃} → T₂ ≈ unit (T₃ ➔ T₁) → T₁ ≈-cod T₂
 
-    data _⊢_∶_ {n} (Γ : Vec Type n) : Term n → Type → Set where
-      int : ∀ {x} → Γ ⊢ int x ∶ unit Int
-      bool : ∀ {x} → Γ ⊢ bool x ∶ unit Bool
-      var : ∀ {i T} → T ≡ lookup i Γ → Γ ⊢ var i ∶ T
-      abs : ∀ {T₁ T₂ t} → (T₁ ∷ Γ) ⊢ t ∶ T₂ → Γ ⊢ abs T₁ t ∶ unit (T₁ ➔ T₂)
-      app : ∀ {T₁ T₂ T₃ t₁ t₂}
-            → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
-            → Γ ⊢ (t₁ ∙ t₂) ∶ T₃
-      add : ∀ {T₁ T₂ t₁ t₂}
-            → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₁ ≈ unit Int → T₂ ≈ unit Int
-            → Γ ⊢ (t₁ + t₂) ∶ unit Int
-      cond : ∀ {T₁ T₂ T₃ T₄ t₁ t₂ t₃}
-              → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → Γ ⊢ t₃ ∶ T₃
-              → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
-              → Γ ⊢ if t₁ then t₂ else t₃ ∶ T₄
-      cast : ∀ {T₁ T₂ t} → Γ ⊢ t ∶ T₁ → T₁ ≈ T₂ → Γ ⊢ (t ∶ T₂) ∶ T₂
+  data Term (n : ℕ) : Set where
+    int : (x : ℤ) → Term n
+    bool : (x : 𝔹) → Term n
+    var : (i : Fin n) → Term n
+    abs : (T : FType) (t : Term (suc n)) → Term n
+    _∙_ : (t₁ t₂ : Term n) → Term n
+    _+_ : (t₁ t₂ : Term n) → Term n
+    if_then_else_ : (t₁ t₂ t₃ : Term n) → Term n
+    _∶_ : (t : Term n) (T : FType) → Term n
+
+  data _⊢_∶_ {n} (Γ : Vec FType n) : Term n → FType → Set where
+    int : ∀ {x} → Γ ⊢ int x ∶ unit Int
+    bool : ∀ {x} → Γ ⊢ bool x ∶ unit Bool
+    var : ∀ {i T} → T ≡ lookup i Γ → Γ ⊢ var i ∶ T
+    abs : ∀ {T₁ T₂ t} → (T₁ ∷ Γ) ⊢ t ∶ T₂ → Γ ⊢ abs T₁ t ∶ unit (T₁ ➔ T₂)
+    app : ∀ {T₁ T₂ T₃ t₁ t₂}
+          → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₂ ≈-dom T₁ → T₃ ≈-cod T₁
+          → Γ ⊢ (t₁ ∙ t₂) ∶ T₃
+    add : ∀ {T₁ T₂ t₁ t₂}
+          → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₁ ≈ unit Int → T₂ ≈ unit Int
+          → Γ ⊢ (t₁ + t₂) ∶ unit Int
+    cond : ∀ {T₁ T₂ T₃ T₄ t₁ t₂ t₃}
+            → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → Γ ⊢ t₃ ∶ T₃
+            → T₁ ≈ unit Bool → T₄ ≈ T₂ ⊓ T₃
+            → Γ ⊢ if t₁ then t₂ else t₃ ∶ T₄
+    cast : ∀ {T₁ T₂ t} → Γ ⊢ t ∶ T₁ → T₁ ≈ T₂ → Γ ⊢ (t ∶ T₂) ∶ T₂
 
 open UnitFunctor
   using ( Carrier ; unit )
 
 module STFL where
 
-  open ATFL
-
-  open Abstract {t = ATFL.type} record
-    { functor = Identity.functor
-    } renaming ( FRel to IRel )
-
-  open Language {functor = IdentityUnit.functor} record
-    { _≈_ = IRel _≡_
-    } public
+  open ATFL IdentityUnit.functor public
 
   ≡-example : (Int ➔ Bool) ≈ (Int ➔ Bool)
   ≡-example = raise refl
@@ -202,16 +201,7 @@ module STFL where
 
 module DTFL where
 
-  open ATFL
-
-  open Abstract {t = ATFL.type} record
-    { functor = Constant.functor ⊤
-    } renaming ( FRel to DRel )
-
-  open Language {functor = ConstantUnit.functor ⊤ tt} record
-    { _≈_ = DRel _≡_
-    } public
-      hiding ( Type )
+  open ATFL (ConstantUnit.functor ⊤ tt) public
 
   ≈-example : {T : Type} → tt ≈ tt
   ≈-example {T} = raise {x = T} refl (rel tt) (rel tt)
@@ -224,15 +214,7 @@ module DTFL where
 
 module GTFL where
 
-  open ATFL
-
-  open Abstract {t = ATFL.type} record
-    { functor = Maybe.functor
-    } renaming ( FRel to GRel )
-
-  open Language {functor = MaybeUnit.functor} record
-    { _≈_ = GRel _≡_
-    } public
+  open ATFL MaybeUnit.functor public
 
   ≈-example : just (just Int ➔ nothing) ≈ just (nothing ➔ just Bool)
   ≈-example = raise refl
@@ -252,15 +234,7 @@ module GTFL where
 
 module LTFL where
 
-  open ATFL
-
-  open Abstract {t = ATFL.type} record
-    { functor = List.functor
-    } renaming ( FRel to LRel )
-
-  open Language {functor = ListUnit.functor} record
-    { _≈_ = LRel _≡_
-    } public
+  open ATFL ListUnit.functor public
 
   ≈-example : [ [ Int ] ➔ [] ] ≈ [ [] ➔ [ Bool ] ]
   ≈-example = raise refl
