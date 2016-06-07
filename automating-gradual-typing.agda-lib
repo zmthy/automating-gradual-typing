@@ -1,0 +1,4 @@
+name: automating-gradual-typing
+include: src
+depend:
+  standard-library
