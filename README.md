@@ -1,7 +1,8 @@
-Mechanising Gradual Typing
-==========================
+Automating Gradual Typing
+=========================
 
-An implementation of Abstracting Gradual Typing in Agda.
+An attempt to implement Abstracting Gradual Typing in Agda that has
+turned into an exercise in extreme abstraction.
 
 Licensing
 ---------
