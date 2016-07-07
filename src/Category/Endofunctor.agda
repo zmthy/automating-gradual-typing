@@ -12,7 +12,7 @@ open import Data.Product
   using ( _,_ ; _×_ )
 
 open import Function
-  using ( _$_ ; id ; const ; _∘_ )
+  using ( id ; const ; _∘_ )
 
 open import Level
   using ( suc ; _⊔_ )
@@ -27,65 +27,48 @@ record Functor {a b} (F : Set a → Set b) : Set (suc a ⊔ b) where
     composition : ∀ {A B C} {f : A → B} {g : B → C} x
                   → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
 
-module Identity where
+open Functor
+
+module Identity {a} where
 
   instance
-    functor : ∀ {a} → Functor {a} id
-    functor = record
-      { lift = _$_
-      ; identity = λ _ → refl
-      ; composition = λ _ → refl
-      }
+    functor : Functor {a} id
+    lift        functor = id
+    identity    functor x = refl
+    composition functor x = refl
 
 module Constant {a} (A : Set a) where
 
   instance
     functor : Functor {a} (const A)
-    functor = record
-      { lift = const id
-      ; identity = λ _ → refl
-      ; composition = λ _ → refl
-      }
+    lift        functor = const id
+    identity    functor x = refl
+    composition functor x = refl
 
 module Maybe {a} where
 
-  functor : Functor {a} Maybe
-  functor = record
-    { lift = Data.Maybe.map
-    ; identity = λ { (just x) → refl ; nothing → refl }
-    ; composition = λ { (just x) → refl ; nothing → refl }
-    }
+  instance
+    functor : Functor {a} Maybe
+    lift        functor = Data.Maybe.map
+    identity    functor (just x) = refl
+    identity    functor nothing  = refl
+    composition functor (just x) = refl
+    composition functor nothing  = refl
 
 module List {a} where
 
-  private
-    lift : {A B : Set a} → (A → B) → List A → List B
-    lift = Data.List.map
-
-    identity : {A : Set a} (x : List A) → lift id x ≡ x
-    identity [] = refl
-    identity (x ∷ xs) = cong₂ _∷_ refl (identity xs)
-
-    composition : ∀ {A B C : Set a} {f : A → B} {g : B → C} x
-                  → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
-    composition [] = refl
-    composition (x ∷ xs) = cong₂ _∷_ refl (composition xs)
-
-  functor : Functor {a} List
-  functor = record
-    { lift = lift
-    ; identity = identity
-    ; composition = composition
-    }
+  instance
+    functor : Functor {a} List
+    lift        functor = Data.List.map
+    identity    functor []       = refl
+    identity    functor (x ∷ xs) = cong₂ _∷_ refl (identity functor xs)
+    composition functor []       = refl
+    composition functor (x ∷ xs) = cong₂ _∷_ refl (composition functor xs)
 
 module Product {a b} {F G : Set a → Set b} (f : Functor F) (g : Functor G) where
 
-  open Functor
-
   instance
-    functor : Functor {a} {b} (λ A → F A × G A)
-    functor = record
-      { lift = λ h → Data.Product.map (lift f h) (lift g h)
-      ; identity = λ { (x , y) → cong₂ _,_ (identity f x) (identity g y) }
-      ; composition = λ { (x , y) → cong₂ _,_ (composition f x) (composition g y) }
-      }
+    functor : Functor λ A → F A × G A
+    lift        functor h       = Data.Product.map (lift f h) (lift g h)
+    identity    functor (x , y) = cong₂ _,_ (identity f x) (identity g y)
+    composition functor (x , y) = cong₂ _,_ (composition f x) (composition g y)
