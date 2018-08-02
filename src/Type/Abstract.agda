@@ -30,6 +30,7 @@ record RecNatTrans {a} : Set (suc a) where
     map : ∀ {F G} ⦃ _ : Functor F ⦄
           → (F (Type G) → G (Type G)) → Type F → Type G
 
+{-# NO_POSITIVITY_CHECK #-}
 record Abstract {a} (t : RecNatTrans {a}) : Set (suc a) where
   field
     {F} : Set a → Set a
@@ -45,7 +46,6 @@ record Abstract {a} (t : RecNatTrans {a}) : Set (suc a) where
   Type = RecType id
   FType = F (RecType F)
 
-  {-# NO_POSITIVITY_CHECK #-}
   data γ : REL FType Type a where
     rel : ∀ {T}
           → (f : F (Σ (RecType (const (Σ (FType × Type) (uncurry γ))))
