@@ -12,6 +12,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Unary
   using ( Pred ; _∈_ )
 
+
 data ℙ-Pred {a ℓ f} {A : Set a}
             (P : Pred A ℓ)
             (F : Pred A f) : Set (a ⊔ ℓ ⊔ f) where

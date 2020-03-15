@@ -21,6 +21,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Power
   using ( raise )
 
+
 ≡-example : (Int ➔ Bool) ≈ (Int ➔ Bool)
 ≡-example = raise refl
                   (rel (((, rel (, refl)) ➔ (, rel (, refl))) , refl))

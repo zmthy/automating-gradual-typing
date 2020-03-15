@@ -24,6 +24,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Power
   using ( raise )
 
+
 ≈-example : just (just Int ➔ nothing) ≈ just (nothing ➔ just Bool)
 ≈-example = raise refl
                   (rel

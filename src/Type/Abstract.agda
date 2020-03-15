@@ -24,6 +24,7 @@ open import Relation.Power
 open import Relation.Unary.PredicateTransformer
   using ( PT )
 
+
 record RecNatTrans {a} : Set (suc a) where
   field
     Type : (Set a → Set a) → Set a

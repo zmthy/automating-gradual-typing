@@ -24,6 +24,7 @@ open import Level
 open import Relation.Binary.PropositionalEquality
   using ( _≡_ ; refl ; cong₂ )
 
+
 record UnitFunctor {a b} : Set (suc (a ⊔ b)) where
   field
     Carrier : Set a → Set b

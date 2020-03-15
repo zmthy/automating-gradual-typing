@@ -20,6 +20,7 @@ open import Level
 open import Relation.Binary.PropositionalEquality
   using ( _≡_ ; refl ; cong₂ )
 
+
 record Functor {a b} (F : Set a → Set b) : Set (suc a ⊔ b) where
   field
     lift : ∀ {A B} → (A → B) → F A → F B

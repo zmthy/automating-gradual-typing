@@ -21,6 +21,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Power
   using ( raise )
 
+
 ≈-example : {T : Type} → tt ≈ tt
 ≈-example {T} = raise {x = T} refl (rel tt) (rel tt)
 
