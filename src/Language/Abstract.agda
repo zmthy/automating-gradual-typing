@@ -105,7 +105,7 @@ data Term (n : ℕ) : Set where
 data _⊢_∶_ {n} (Γ : Vec FType n) : Term n → FType → Set where
   int : ∀ {x} → Γ ⊢ int x ∶ unit Int
   bool : ∀ {x} → Γ ⊢ bool x ∶ unit Bool
-  var : ∀ {i T} → T ≡ lookup i Γ → Γ ⊢ var i ∶ T
+  var : ∀ {i} → Γ ⊢ var i ∶ lookup Γ i
   abs : ∀ {T₁ T₂ t} → (T₁ ∷ Γ) ⊢ t ∶ T₂ → Γ ⊢ abs T₁ t ∶ unit (T₁ ➔ T₂)
   app : ∀ {T₁ T₂ T₃ t₁ t₂}
         → Γ ⊢ t₁ ∶ T₁ → Γ ⊢ t₂ ∶ T₂ → T₂ ≈-dom T₁ → T₃ ≈-cod T₁

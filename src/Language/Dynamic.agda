@@ -29,5 +29,5 @@ term-example : Term 0
 term-example = abs tt (var zero ∶ tt)
 
 typed-example : {T : Type} → [] ⊢ term-example ∶ tt
-typed-example {T} = abs (cast (var refl) (raise {x = T} refl
-                                                (rel tt) (rel tt)))
+typed-example {T} = abs (cast var (raise {x = T} refl
+                                         (rel tt) (rel tt)))

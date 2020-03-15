@@ -10,7 +10,7 @@ open import Data.Fin
   using ( zero )
 
 open import Data.Product
-  using ( _,_ ; ,_ )
+  using ( _,_ ; -,_ )
 
 open import Data.Vec
   using ( [] )
@@ -27,11 +27,11 @@ open import Relation.Power
 
 ≈-example : [ [ Int ] ➔ [] ] ≈ [ [] ➔ [ Bool ] ]
 ≈-example = raise refl
-                  (rel [ ((, rel [ (, refl) ]) ➔ (, rel [])) , refl ])
-                  (rel [ ((, rel []) ➔ (, rel [ (, refl ) ])) , refl ])
+                  (rel [ ((-, rel [ (-, refl) ]) ➔ (-, rel [])) , refl ])
+                  (rel [ ((-, rel []) ➔ (-, rel [ (-, refl ) ])) , refl ])
 
 term-example : Term 0
 term-example = abs [] (var zero ∶ [ Int ])
 
 typed-example : [] ⊢ term-example ∶ [ [] ➔ [ Int ] ]
-typed-example = abs (cast (var refl) (raise refl (rel []) (rel [ (, refl) ])))
+typed-example = abs (cast var (raise refl (rel []) (rel [ (-, refl) ])))

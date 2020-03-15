@@ -10,7 +10,7 @@ open import Data.Maybe
   using ( just ; nothing )
 
 open import Data.Product
-  using ( _,_ ; ,_ )
+  using ( _,_ ; -,_ )
 
 open import Data.Vec
   using ( [] )
@@ -28,13 +28,13 @@ open import Relation.Power
 ≈-example : just (just Int ➔ nothing) ≈ just (nothing ➔ just Bool)
 ≈-example = raise refl
                   (rel
-                    (just (((, rel (just (, refl))) ➔ (, rel nothing)) , refl)))
+                    (just (((-, rel (just (-, refl))) ➔ (-, rel nothing)) , refl)))
                   (rel
-                    (just (((, rel nothing) ➔ (, rel (just (, refl)))) , refl)))
+                    (just (((-, rel nothing) ➔ (-, rel (just (-, refl)))) , refl)))
 
 term-example : Term 0
 term-example = abs nothing (var zero ∶ just Int)
 
 typed-example : [] ⊢ term-example ∶ just (nothing ➔ just Int)
-typed-example = abs (cast (var refl) (raise refl (rel nothing)
-                                                 (rel (just (, refl)))))
+typed-example = abs (cast var (raise refl (rel nothing)
+                                          (rel (just (-, refl)))))
