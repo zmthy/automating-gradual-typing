@@ -27,8 +27,8 @@ open import Relation.Power
 
 ≈-example : [ [ Int ] ➔ [] ] ≈ [ [] ➔ [ Bool ] ]
 ≈-example = raise refl
-                  (rel [ ((-, rel [ (-, refl) ]) ➔ (-, rel [])) , refl ])
-                  (rel [ ((-, rel []) ➔ (-, rel [ (-, refl ) ])) , refl ])
+                  (rel [ rec (rel [ (-, refl) ]) ➔ rec (rel []) , refl ])
+                  (rel [ rec (rel []) ➔ rec (rel [ (-, refl ) ]) , refl ])
 
 term-example : Term 0
 term-example = abs [] (var zero ∶ [ Int ])

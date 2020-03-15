@@ -28,9 +28,9 @@ record Functor {a b} (F : Set a → Set b) : Set (suc a ⊔ b) where
     composition : ∀ {A B C} {f : A → B} {g : B → C} x
                   → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
 
-open Functor
-
 module Identity {a} where
+
+  open Functor
 
   instance
     functor : Functor {a} id
@@ -40,6 +40,8 @@ module Identity {a} where
 
 module Constant {a} (A : Set a) where
 
+  open Functor
+
   instance
     functor : Functor {a} (const A)
     lift        functor = const id
@@ -47,6 +49,8 @@ module Constant {a} (A : Set a) where
     composition functor x = refl
 
 module Maybe {a} where
+
+  open Functor
 
   instance
     functor : Functor {a} Maybe
@@ -58,6 +62,8 @@ module Maybe {a} where
 
 module List {a} where
 
+  open Functor
+
   instance
     functor : Functor {a} List
     lift        functor = Data.List.map
@@ -68,8 +74,12 @@ module List {a} where
 
 module Product {a b} {F G : Set a → Set b} (f : Functor F) (g : Functor G) where
 
+  open Functor
+
   instance
     functor : Functor λ A → F A × G A
     lift        functor h       = Data.Product.map (lift f h) (lift g h)
     identity    functor (x , y) = cong₂ _,_ (identity f x) (identity g y)
     composition functor (x , y) = cong₂ _,_ (composition f x) (composition g y)
+
+open Functor ⦃...⦄ public

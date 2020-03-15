@@ -7,7 +7,11 @@ open import Data.Fin
   using ( zero )
 
 open import Data.Maybe
-  using ( just ; nothing )
+  using ()
+  renaming ( just to type
+           ; nothing to ??
+           )
+  public
 
 open import Data.Product
   using ( _,_ ; -,_ )
@@ -25,16 +29,16 @@ open import Relation.Power
   using ( raise )
 
 
-≈-example : just (just Int ➔ nothing) ≈ just (nothing ➔ just Bool)
+≈-example : type (type Int ➔ ??) ≈ type (?? ➔ type Bool)
 ≈-example = raise refl
                   (rel
-                    (just (((-, rel (just (-, refl))) ➔ (-, rel nothing)) , refl)))
+                    (type (rec (rel (type (-, refl))) ➔ rec (rel ??) , refl)))
                   (rel
-                    (just (((-, rel nothing) ➔ (-, rel (just (-, refl)))) , refl)))
+                    (type (rec (rel ??) ➔ rec (rel (type (-, refl))) , refl)))
 
 term-example : Term 0
-term-example = abs nothing (var zero ∶ just Int)
+term-example = abs ?? (var zero ∶ type Int)
 
-typed-example : [] ⊢ term-example ∶ just (nothing ➔ just Int)
-typed-example = abs (cast var (raise refl (rel nothing)
-                                          (rel (just (-, refl)))))
+typed-example : [] ⊢ term-example ∶ type (?? ➔ type Int)
+typed-example = abs (cast var (raise refl (rel ??)
+                                          (rel (type (-, refl)))))

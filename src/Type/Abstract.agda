@@ -1,10 +1,10 @@
 module Type.Abstract where
 
 open import Category.Endofunctor
-  using ( Functor ; module Constant )
+  using ( Functor ; module Constant ; lift )
 
 open import Data.Product
-  using ( Σ ; proj₁ ; proj₂ ; _×_ ; uncurry )
+  using ( Σ ; Σ-syntax ; proj₁ )
 
 open import Function
   using ( const ; id ; _∘_ )
@@ -25,33 +25,44 @@ open import Relation.Unary.PredicateTransformer
   using ( PT )
 
 
-record RecNatTrans {a} : Set (suc a) where
-  field
-    Type : (Set a → Set a) → Set a
-    map : ∀ {F G} ⦃ _ : Functor F ⦄
-          → (F (Type G) → G (Type G)) → Type F → Type G
+μTrans : ∀ ℓ → Set (suc ℓ)
+μTrans ℓ = (Set ℓ → Set ℓ) → Set ℓ
+
+μTransMap : ∀ {ℓ} → μTrans ℓ → Set (suc ℓ)
+μTransMap T = ∀ {F G} ⦃ _ : Functor F ⦄
+              → (F (T G) → G (T G)) → T F → T G
 
 {-# NO_POSITIVITY_CHECK #-}
-record Abstract {a} (t : RecNatTrans {a}) : Set (suc a) where
+record Concretisation {a} {μType : μTrans a} (map : μTransMap μType) : Set (suc a) where
   field
-    {F} : Set a → Set a
-    functor : Functor F
+    F : Set a → Set a
+    instance
+      ⦃ functor ⦄ : Functor F
 
-  open Functor functor
-    using ( lift )
+  Type = μType id
+  FType = F (μType F)
 
-  open RecNatTrans t
-    using ( map )
-    renaming ( Type to RecType )
+  data γ : REL FType Type a
 
-  Type = RecType id
-  FType = F (RecType F)
+  record μγ : Set a where
+    inductive
+    constructor rec
+    field
+      {abstract-type} : FType
+      {concrete-type} : Type
+      concretisation : γ abstract-type concrete-type
 
-  data γ : REL FType Type a where
+  open μγ
+    public
+
+  γType = μType (const μγ)
+
+  open Constant μγ
+
+  data γ where
     rel : ∀ {T}
-          → (f : F (Σ (RecType (const (Σ (FType × Type) (uncurry γ))))
-                      (_≡_ T ∘ map ⦃ Constant.functor _ ⦄ (proj₂ ∘ proj₁))))
-          → γ (lift (map ⦃ Constant.functor _ ⦄ (proj₁ ∘ proj₁) ∘ proj₁) f) T
+          → (f : F (Σ[ U ∈ γType ] map concrete-type U ≡ T))
+          → γ (lift (map abstract-type ∘ proj₁) f) T
 
   FPred : ∀ {ℓ} → PT Type FType ℓ (ℓ ⊔ a)
   FPred P T = ℙ-Pred P (γ T)

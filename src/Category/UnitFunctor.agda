@@ -28,7 +28,8 @@ open import Relation.Binary.PropositionalEquality
 record UnitFunctor {a b} : Set (suc (a ⊔ b)) where
   field
     Carrier : Set a → Set b
-    functor : Functor Carrier
+    instance
+      functor : Functor Carrier
 
   open Functor functor public
 
@@ -48,7 +49,7 @@ module Identity {a} where
     unit      functor = id
     lift-unit functor = refl
 
-module Constant {a} (A : Set a) (x : A) where
+module Constant {a} {A : Set a} (x : A) where
 
   instance
     functor : UnitFunctor

@@ -1,17 +1,10 @@
 open import Category.UnitFunctor
   using ( UnitFunctor )
 
-open import Level
-  using ( zero )
-
-module Language.Abstract (uf : UnitFunctor {zero} {zero}) where
+module Language.Abstract (unit-functor : UnitFunctor) where
 
 open import Category.Endofunctor
-  using ( Functor
-        ; module Constant
-        ; module Identity
-        ; module List
-        ; module Maybe )
+  using ( Functor ; lift )
 
 open import Data.Bool
   using ()
@@ -27,7 +20,7 @@ open import Data.Nat
   using ( ℕ ; suc )
 
 open import Data.Vec
-  using ( Vec ; [] ; _∷_ ; lookup )
+  using ( Vec ; _∷_ ; lookup )
 
 open import Relation.Binary
   using ( Rel )
@@ -36,50 +29,36 @@ open import Relation.Binary.PropositionalEquality
   using ( _≡_ )
 
 open import Type.Abstract
+  using ( Concretisation ; μTransMap )
 
 
-module _ where
+{-# NO_POSITIVITY_CHECK #-}
+data μType (F : Set → Set) : Set where
+  Int : μType F
+  Bool : μType F
+  _➔_ : (T₁ T₂ : F (μType F)) → μType F
 
-  open Functor
-    using ( lift )
-
-  open UnitFunctor
-    using ( Carrier )
-
-  {-# NO_POSITIVITY_CHECK #-}
-  data RecType (F : Set → Set) : Set where
-    Int : RecType F
-    Bool : RecType F
-    _➔_ : (T₁ T₂ : F (RecType F)) → RecType F
+private
 
   {-# TERMINATING #-}
-  map : ∀ {F G} ⦃ _ : Functor F ⦄ → (F (RecType G) → G (RecType G))
-        → RecType F → RecType G
-  map ⦃ F ⦄ f Int = Int
-  map ⦃ F ⦄ f Bool = Bool
-  map ⦃ F ⦄ f (T₁ ➔ T₂) = f (lift F (map f) T₁) ➔ f (lift F (map f) T₂)
+  map : μTransMap μType
+  map f Int = Int
+  map f Bool = Bool
+  map f (T₁ ➔ T₂) = f (lift (map f) T₁) ➔ f (lift (map f) T₂)
 
-type : RecNatTrans
-type = record
-  { Type = RecType
-  ; map = map
-  }
+  open UnitFunctor unit-functor
 
+  concretisation : Concretisation map
+  Concretisation.F concretisation = Carrier
 
-open UnitFunctor uf
-
-module Lift = Abstract {t = type} record
-  { functor = functor
-  }
-
-open Lift
-  using ( Type ; FType ; rel )
+open Concretisation concretisation
+  using ( Type ; FType ; rec ; rel )
   public
 
-open Lift
+open Concretisation concretisation
   using ( FRel )
 
-_≈_ : Rel FType zero
+_≈_ : Rel FType _
 _≈_ = FRel _≡_
 
 
