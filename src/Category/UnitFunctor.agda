@@ -19,68 +19,68 @@ open import Function
   using ( _$_ ; const ; id )
 
 open import Level
-  using ( suc ; _⊔_ )
+  using ( Level ; suc ; _⊔_ )
 
 open import Relation.Binary.PropositionalEquality
   using ( _≡_ ; refl ; cong₂ )
 
 
-record UnitFunctor {a b} : Set (suc (a ⊔ b)) where
+variable
+  a b : Level
+
+record UnitFunctor (F : Set a → Set b) : Set (suc (a ⊔ b)) where
   field
-    Carrier : Set a → Set b
     instance
-      functor : Functor Carrier
+      functor : Functor λ A i → F (A i)
 
   open Functor functor public
 
   field
-    unit : ∀ {A} (x : A) → Carrier A
-    lift-unit : ∀ {A B} {f : A → B} {x} → lift f (unit x) ≡ unit (f x)
+    unit : ∀ {A} (x : A) → F A
+    lift-unit : ∀ {A B i} {f : A i → B i} {x} → lift {A} {B} f (unit x) ≡ unit (f x)
 
 open UnitFunctor
   renaming ( functor to extends )
 
-module Identity {a} where
+module Identity where
 
   instance
-    functor : UnitFunctor {a}
-    Carrier   functor = id
+    functor : UnitFunctor {a} id
     extends   functor = Endofunctor.Identity.functor
     unit      functor = id
     lift-unit functor = refl
 
-module Constant {a} {A : Set a} (x : A) where
+module Constant {A : Set a} (x : A) where
 
   instance
-    functor : UnitFunctor
-    Carrier   functor = const A
-    extends   functor = Endofunctor.Constant.functor A
+    functor : UnitFunctor {a} (const A)
+    extends   functor = Endofunctor.Constant.functor (const A)
     unit      functor = const x
     lift-unit functor = refl
 
-module Maybe {a} where
+module Maybe where
 
   instance
-    functor : UnitFunctor {a}
-    Carrier   functor = Maybe
+    functor : UnitFunctor {a} Maybe
     extends   functor = Endofunctor.Maybe.functor
     unit      functor = just
     lift-unit functor = refl
 
-module List {a} where
+module List where
 
   instance
-    functor : UnitFunctor {a}
-    Carrier   functor = List
+    functor : UnitFunctor {a} List
     extends   functor = Endofunctor.List.functor
     unit      functor = [_]
     lift-unit functor = refl
 
-module Product {a b} (U V : UnitFunctor {a} {b}) where
+module Product {F G : Set a → Set b} (u : UnitFunctor F) (v : UnitFunctor G) where
 
   instance
-    functor : UnitFunctor
-    Carrier   functor A = Carrier U A × Carrier V A
-    extends   functor = Endofunctor.Product.functor (extends U) (extends V)
-    unit      functor = < unit U , unit V >
-    lift-unit functor = cong₂ _,_ (lift-unit U) (lift-unit V)
+    functor : UnitFunctor λ A → F A × G A
+    extends   functor = Endofunctor.Product.functor (extends u) (extends v)
+    unit      functor = < unit u , unit v >
+    lift-unit functor = cong₂ _,_ (lift-unit u) (lift-unit v)
+
+open UnitFunctor
+  public

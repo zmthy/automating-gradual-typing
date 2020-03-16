@@ -1,7 +1,7 @@
 module Type.Abstract where
 
 open import Category.Endofunctor
-  using ( Functor ; module Constant ; lift )
+  using ( Functor ; SizedSet ; module Constant ; lift )
 
 open import Data.Product
   using ( Σ ; Σ-syntax ; proj₁ )
@@ -10,7 +10,7 @@ open import Function
   using ( const ; id ; _∘_ )
 
 open import Level
-  using ( _⊔_ ; suc )
+  using ( Level ; _⊔_ ; suc )
 
 open import Relation.Binary
   using ( REL ; Rel )
@@ -24,32 +24,42 @@ open import Relation.Power
 open import Relation.Unary.PredicateTransformer
   using ( PT )
 
+open import Size
+  using ( Size ; Size<_ )
+
+
+variable
+  a ℓ : Level
 
 μTrans : ∀ ℓ → Set (suc ℓ)
-μTrans ℓ = (Set ℓ → Set ℓ) → Set ℓ
+μTrans ℓ = (SizedSet ℓ → SizedSet ℓ) → SizedSet ℓ
 
-μTransMap : ∀ {ℓ} → μTrans ℓ → Set (suc ℓ)
+μTransMap : μTrans ℓ → Set (suc ℓ)
 μTransMap T = ∀ {F G} ⦃ _ : Functor F ⦄
-              → (F (T G) → G (T G)) → T F → T G
+              → {i : Size}
+              → (∀ {j : Size< i} → F (T G) j → G (T G) j) → T F i → T G i
 
 {-# NO_POSITIVITY_CHECK #-}
-record Concretisation {a} {μType : μTrans a} (map : μTransMap μType) : Set (suc a) where
+record Concretisation {μType : μTrans a} (map : μTransMap μType) : Set (suc a) where
   field
-    F : Set a → Set a
+    F : SizedSet a → SizedSet a
     instance
       ⦃ functor ⦄ : Functor F
 
-  Type = μType id
-  FType = F (μType F)
+  module Types (i : Size) where
+    Type = μType id i
+    FType = F (μType F) i
 
-  data γ : REL FType Type a
+  open Types
 
-  record μγ : Set a where
+  data γ {i : Size} : REL (FType i) (Type i) a
+
+  record μγ (i : Size) : Set a where
     inductive
     constructor rec
     field
-      {abstract-type} : FType
-      {concrete-type} : Type
+      {abstract-type} : FType i
+      {concrete-type} : Type i
       concretisation : γ abstract-type concrete-type
 
   open μγ
@@ -59,13 +69,19 @@ record Concretisation {a} {μType : μTrans a} (map : μTransMap μType) : Set (
 
   open Constant μγ
 
-  data γ where
-    rel : ∀ {T}
-          → (f : F (Σ[ U ∈ γType ] map concrete-type U ≡ T))
-          → γ (lift (map abstract-type ∘ proj₁) f) T
+  Tγ : (i : Size) → Type i → Size → Set a
+  Tγ i T _ = Σ[ U ∈ γType i ] map concrete-type U ≡ T
 
-  FPred : ∀ {ℓ} → PT Type FType ℓ (ℓ ⊔ a)
+  data γ {i} where
+    rel : ∀ {T : Type i}
+          → (f : F (Tγ i T) i)
+          → γ (lift {B = μType F} (map abstract-type ∘ proj₁) f) T
+
+  variable
+    i : Size
+
+  FPred : PT (Type i) (FType i) ℓ (ℓ ⊔ a)
   FPred P T = ℙ-Pred P (γ T)
 
-  FRel : ∀ {ℓ} → Rel Type ℓ → Rel FType (ℓ ⊔ a)
+  FRel : Rel (Type i) ℓ → Rel (FType i) (ℓ ⊔ a)
   FRel P T₁ T₂ = ℙ-Rel P (γ T₁) (γ T₂)

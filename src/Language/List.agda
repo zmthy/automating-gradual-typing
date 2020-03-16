@@ -4,7 +4,8 @@ open import Category.UnitFunctor
   using ( module List )
 
 open import Data.List
-  using ( [] ; [_] )
+  using ( List ; [] ; _∷_ ; [_] )
+  public
 
 open import Data.Fin
   using ( zero )
@@ -15,7 +16,8 @@ open import Data.Product
 open import Data.Vec
   using ( [] )
 
-open import Language.Abstract List.functor
+import Language.Abstract
+open Language.Abstract.Language List
   public
 
 open import Relation.Binary.PropositionalEquality

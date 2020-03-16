@@ -8,7 +8,8 @@ open import Data.Fin
 
 open import Data.Maybe
   using ()
-  renaming ( just to type
+  renaming ( Maybe to GType
+           ; just to type
            ; nothing to ??
            )
   public
@@ -19,7 +20,8 @@ open import Data.Product
 open import Data.Vec
   using ( [] )
 
-open import Language.Abstract Maybe.functor
+import Language.Abstract
+open Language.Abstract.Language GType
   public
 
 open import Relation.Binary.PropositionalEquality

@@ -12,7 +12,11 @@ open import Data.Product
 open import Data.Vec
   using ( [] )
 
-open import Language.Abstract Identity.functor
+open import Function
+  using ( id )
+
+import Language.Abstract
+open Language.Abstract.Language id
   public
 
 open import Relation.Binary.PropositionalEquality

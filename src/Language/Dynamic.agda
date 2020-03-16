@@ -1,20 +1,24 @@
 module Language.Dynamic where
 
-open import Category.UnitFunctor
-  using ( module Constant )
-
 open import Data.Fin
   using ( zero )
 
 open import Data.Unit
   using ()
-  renaming ( tt to ⋆ )
+  renaming ( ⊤ to DType ; tt to ⋆ )
   public
+
+open import Category.UnitFunctor
+  using ( module Constant )
 
 open import Data.Vec
   using ( [] )
 
-open import Language.Abstract (Constant.functor ⋆)
+open import Function
+  using ( const )
+
+import Language.Abstract
+open Language.Abstract.Language (const DType)
   public
 
 open import Relation.Binary.PropositionalEquality
@@ -22,6 +26,10 @@ open import Relation.Binary.PropositionalEquality
 
 open import Relation.Power
   using ( raise )
+
+open Constant ⋆
+  using ( functor )
+  public
 
 
 ≈-example : {T : Type} → ⋆ ≈ ⋆

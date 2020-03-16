@@ -15,22 +15,31 @@ open import Function
   using ( id ; const ; _∘_ )
 
 open import Level
-  using ( suc ; _⊔_ )
+  using ( Level ; suc ; _⊔_ )
 
 open import Relation.Binary.PropositionalEquality
   using ( _≡_ ; refl ; cong₂ )
 
+open import Size
+  using ( Size )
 
-record Functor {a b} (F : Set a → Set b) : Set (suc a ⊔ b) where
+
+variable
+  a b : Level
+
+SizedSet : ∀ ℓ → Set (suc ℓ)
+SizedSet ℓ = Size → Set ℓ
+
+record Functor (F : SizedSet a → SizedSet b) : Set (suc a ⊔ b) where
   field
-    lift : ∀ {A B} → (A → B) → F A → F B
-    identity : ∀ {A} x → lift {A} id x ≡ x
-    composition : ∀ {A B C} {f : A → B} {g : B → C} x
-                  → lift (g ∘ f) x ≡ (lift g ∘ lift f) x
+    lift : ∀ {A B i} → (A i → B i) → F A i → F B i
+    identity : ∀ {A i} x → lift {A} {i = i} id x ≡ x
+    composition : ∀ {A B C : SizedSet a} {i} {f : A i → B i} {g : B i → C i} x
+                  → lift {A} {C} (g ∘ f) x ≡ (lift {B} {C} g ∘ lift {A} {B} f) x
 
-module Identity {a} where
+open Functor
 
-  open Functor
+module Identity where
 
   instance
     functor : Functor {a} id
@@ -38,9 +47,7 @@ module Identity {a} where
     identity    functor x = refl
     composition functor x = refl
 
-module Constant {a} (A : Set a) where
-
-  open Functor
+module Constant (A : SizedSet a) where
 
   instance
     functor : Functor {a} (const A)
@@ -48,38 +55,33 @@ module Constant {a} (A : Set a) where
     identity    functor x = refl
     composition functor x = refl
 
-module Maybe {a} where
-
-  open Functor
+module Maybe where
 
   instance
-    functor : Functor {a} Maybe
+    functor : Functor {a} λ A i → Maybe (A i)
     lift        functor = Data.Maybe.map
     identity    functor (just x) = refl
     identity    functor nothing  = refl
     composition functor (just x) = refl
     composition functor nothing  = refl
 
-module List {a} where
-
-  open Functor
+module List where
 
   instance
-    functor : Functor {a} List
+    functor : Functor {a} λ A i → List (A i)
     lift        functor = Data.List.map
-    identity    functor []       = refl
-    identity    functor (x ∷ xs) = cong₂ _∷_ refl (identity functor xs)
-    composition functor []       = refl
-    composition functor (x ∷ xs) = cong₂ _∷_ refl (composition functor xs)
+    identity    functor     []       = refl
+    identity    functor {A} (x ∷ xs) = cong₂ _∷_ refl (identity functor {A} xs)
+    composition functor             []       = refl
+    composition functor {A} {B} {C} (x ∷ xs) = cong₂ _∷_ refl (composition functor {A} {B} {C} xs)
 
-module Product {a b} {F G : Set a → Set b} (f : Functor F) (g : Functor G) where
-
-  open Functor
+module Product {F G : SizedSet a → SizedSet b} (f : Functor F) (g : Functor G) where
 
   instance
-    functor : Functor λ A → F A × G A
+    functor : Functor λ A i → F A i × G A i
     lift        functor h       = Data.Product.map (lift f h) (lift g h)
     identity    functor (x , y) = cong₂ _,_ (identity f x) (identity g y)
     composition functor (x , y) = cong₂ _,_ (composition f x) (composition g y)
 
-open Functor ⦃...⦄ public
+open Functor ⦃...⦄
+  public
